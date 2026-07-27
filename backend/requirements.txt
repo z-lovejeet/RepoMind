@@ -1,0 +1,41 @@
+# ═══════════════════════════════════════════════════════════════
+# RepoMind Backend — Python Dependencies
+# ═══════════════════════════════════════════════════════════════
+# Install: pip install -r requirements.txt
+# ═══════════════════════════════════════════════════════════════
+
+# ─── Web Framework ───
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+
+# ─── Configuration ───
+pydantic==2.9.0
+pydantic-settings==2.5.0
+python-dotenv==1.0.1
+
+# ─── Firebase Admin SDK ───
+firebase-admin==6.5.0
+
+# ─── OpenAI ───
+openai==1.45.0
+
+# ─── HTTP Client (for Ollama) ───
+httpx==0.27.0
+
+# ─── Git Operations ───
+gitpython==3.1.43
+
+# ─── ML / Embeddings ───
+sentence-transformers==3.0.0
+torch==2.4.0
+numpy==1.26.4
+
+# ─── Vector Search ───
+faiss-cpu==1.8.0
+
+# ─── Keyword Search ───
+rank-bm25==0.2.2
+
+# ─── YAML Parsing ───
+pyyaml==6.0.1
