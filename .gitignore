@@ -1,0 +1,57 @@
+# ═══════════════════════════════════════════════════════════
+# RepoMind — Git Ignore
+# ═══════════════════════════════════════════════════════════
+
+# ─── Environment ───
+.env
+*.env.local
+
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+env/
+
+# ─── Node ───
+node_modules/
+.pnp.*
+.yarn/
+
+# ─── Build ───
+frontend/dist/
+backend/dist/
+
+# ─── IDE ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ─── ML Models (too large for git) ───
+*.bin
+*.pt
+*.onnx
+ml_models/
+
+# ─── FAISS Indexes ───
+*.faiss
+*.index
+
+# ─── Temp ───
+/tmp/
+*.tmp
+*.log
+
+# ─── Firebase ───
+firebase-debug.log
+.firebase/
+serviceAccountKey.json
