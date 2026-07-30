@@ -191,6 +191,21 @@ class PipelineResult:
 
 
 @dataclass
+class ParsedResponse:
+    """
+    Parsed LLM response with extracted citations and validation results.
+
+    Produced by: core/generation/response_parser.py
+    Consumed by: core/pipeline.py
+    """
+
+    answer: str
+    citations: list[Citation]
+    hallucination_flags: list[str]  # Invalid file paths detected
+
+
+
+@dataclass
 class IngestResult:
     """
     The result of the ingestion pipeline.
