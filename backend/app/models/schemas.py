@@ -176,6 +176,20 @@ class Citation:
 
 
 @dataclass
+class ParsedResponse:
+    """
+    Parsed LLM response with extracted citations.
+
+    Produced by: core/generation/response_parser.py
+    Consumed by: core/pipeline.py
+    """
+
+    answer: str
+    citations: list[Citation]
+    hallucination_flags: list[str]  # Invalid file paths detected
+
+
+@dataclass
 class PipelineResult:
     """
     The complete result of a RAG query pipeline execution.
@@ -188,21 +202,6 @@ class PipelineResult:
     citations: list[Citation]
     timings: dict  # {"retrieval_ms": 45, "generation_ms": 1200}
     config: dict  # {"strategy": "hybrid", "reranking": True}
-
-
-@dataclass
-class ParsedResponse:
-    """
-    Parsed LLM response with extracted citations and validation results.
-
-    Produced by: core/generation/response_parser.py
-    Consumed by: core/pipeline.py
-    """
-
-    answer: str
-    citations: list[Citation]
-    hallucination_flags: list[str]  # Invalid file paths detected
-
 
 
 @dataclass
@@ -235,7 +234,7 @@ class QueryConfig:
     top_k_rerank: int = 5
     chunk_size: int = 512
     include_references: bool = True
-    model: str = "gpt-4o-mini"
+    model: str = "gemini-3.6-flash"
     temperature: float = 0.1
 
 

@@ -74,6 +74,12 @@ class Settings(BaseSettings):
     DEFAULT_STRATEGY: str = "hybrid"
     DEFAULT_TEMPERATURE: float = 0.1
 
+    # ─── LLM Providers ───
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-3.6-flash"
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.1-8b-instant"
+
     # ─── Limits ───
     MAX_REPO_COUNT: int = 10
     MAX_FILE_SIZE_BYTES: int = 1_048_576  # 1MB
