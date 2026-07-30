@@ -202,11 +202,18 @@ class LLMClient:
                 if "400" in error_str and "invalid" in error_str:
                     raise LLMError(f"Bad request ({provider}): {e}") from e
 
-                # No retry on daily quota exhaustion (fail fast to trigger fallback)
-                if "429" in error_str and "quota" in error_str:
-                    raise LLMError(f"Quota exhausted ({provider}): {e}") from e
+                # No retry on daily quota exhaustion — it won't reset for hours
+                # Detected by "limit: 0" or "PerDay" in the error message
+                if "limit: 0" in error_str or "perday" in error_str:
+                    logger.warning(
+                        f"Daily quota exhausted ({provider}). "
+                        f"Skipping retries — falling back immediately."
+                    )
+                    raise LLMError(
+                        f"Daily quota exhausted ({provider}): {e}"
+                    ) from e
 
-                # Retry on temporary rate limit or server error
+                # Retry on temporary rate limit (RPM) or server error
                 if attempt < max_retries - 1:
                     wait = 2 ** (attempt + 1)  # 2s, 4s, 8s
                     logger.warning(
