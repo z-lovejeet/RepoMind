@@ -19,7 +19,7 @@ export const DEFAULT_QUERY_CONFIG: QueryConfig = {
   top_k_retrieval: 20,
   top_k_rerank: 5,
   include_references: true,
-  model: "gpt-4o-mini",
+  model: "gemini-3.6-flash",
   temperature: 0.1,
 };
 
@@ -32,10 +32,16 @@ export const SUPPORTED_STRATEGIES = [
 ] as const;
 
 /** Available LLM models */
-export const SUPPORTED_MODELS = ["gpt-4o-mini", "ollama"] as const;
+export const SUPPORTED_MODELS = [
+  "gemini-3.6-flash",
+  "llama-3.1-8b-instant",
+] as const;
 
 /** App metadata */
 export const APP_NAME = "RepoMind";
 export const APP_VERSION = "1.0.0";
 export const APP_DESCRIPTION =
   "AI-Powered Repository Intelligence. Upload a repo, ask anything.";
+
+/** Limits */
+export const MAX_REPOS = 10;
