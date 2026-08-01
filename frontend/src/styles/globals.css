@@ -30,6 +30,7 @@
   --color-warning: #f0a030;
   --color-error: #ff4757;
   --color-info: #3b82f6;
+  --color-danger: #ff4757;
 
   --color-border: #2a2a3e;
   --color-border-hover: #3a3a52;
@@ -115,7 +116,30 @@ code, pre {
   font-family: var(--font-mono);
 }
 
-/* ─── Button Base ─── */
+/* ─── Animations ─── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTON SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -159,7 +183,25 @@ code, pre {
   background: var(--color-bg-hover);
 }
 
-/* ─── Card Base ─── */
+.btn-danger {
+  background: rgba(255, 71, 87, 0.15);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(255, 71, 87, 0.25);
+}
+
+.btn-sm {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-xs);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
 .card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
@@ -172,7 +214,10 @@ code, pre {
   border-color: var(--color-border-hover);
 }
 
-/* ─── Status Badges ─── */
+/* ═══════════════════════════════════════════════════════════════
+   STATUS BADGES
+   ═══════════════════════════════════════════════════════════════ */
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -188,6 +233,7 @@ code, pre {
 .badge-indexing {
   background: rgba(59, 130, 246, 0.15);
   color: var(--color-info);
+  animation: pulse 2s ease-in-out infinite;
 }
 
 .badge-ready {
@@ -200,7 +246,168 @@ code, pre {
   color: var(--color-error);
 }
 
-/* ─── Page Layouts ─── */
+/* ═══════════════════════════════════════════════════════════════
+   LOADER
+   ═══════════════════════════════════════════════════════════════ */
+
+.loader {
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NAVBAR
+   ═══════════════════════════════════════════════════════════════ */
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-8);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  background: rgba(18, 18, 26, 0.85);
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: var(--text-lg);
+}
+
+.navbar-brand:hover {
+  color: var(--color-text-primary);
+}
+
+.navbar-logo {
+  font-size: var(--text-xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   USER MENU
+   ═══════════════════════════════════════════════════════════════ */
+
+.user-menu {
+  position: relative;
+}
+
+.user-menu-trigger {
+  background: none;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color var(--transition-fast);
+  display: flex;
+}
+
+.user-menu-trigger:hover {
+  border-color: var(--color-accent);
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-avatar-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 200px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: fadeIn var(--transition-fast);
+  z-index: 200;
+}
+
+.user-menu-info {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.user-menu-name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+.user-menu-email {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.user-menu-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.user-menu-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.user-menu-item:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTH GUARD LOADING
+   ═══════════════════════════════════════════════════════════════ */
+
+.auth-guard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LANDING PAGE
+   ═══════════════════════════════════════════════════════════════ */
+
 .landing {
   display: flex;
   flex-direction: column;
@@ -212,6 +419,12 @@ code, pre {
 .landing-header {
   text-align: center;
   padding: var(--space-16) 0 var(--space-8);
+  animation: slideUp 0.6s ease;
+}
+
+.landing-logo {
+  font-size: 3rem;
+  margin-bottom: var(--space-4);
 }
 
 .landing-header h1 {
@@ -229,9 +442,16 @@ code, pre {
   margin-top: var(--space-3);
 }
 
+.landing-main {
+  max-width: 900px;
+  width: 100%;
+}
+
 .landing-hero {
-  max-width: 640px;
   text-align: center;
+  max-width: 640px;
+  margin: 0 auto var(--space-16);
+  animation: slideUp 0.6s ease 0.1s both;
 }
 
 .landing-hero h2 {
@@ -253,10 +473,132 @@ code, pre {
   flex-wrap: wrap;
 }
 
+/* ─── Login Button ─── */
+.login-btn {
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--text-base);
+  gap: var(--space-3);
+}
+
+.login-btn svg {
+  flex-shrink: 0;
+}
+
+/* ─── Feature Cards ─── */
+.landing-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+  margin-bottom: var(--space-16);
+  animation: slideUp 0.6s ease 0.2s both;
+}
+
+.feature-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  text-align: center;
+  transition: all var(--transition-base);
+}
+
+.feature-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-4);
+}
+
+.feature-card h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+  color: var(--color-text-primary);
+}
+
+.feature-card p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+/* ─── How It Works Steps ─── */
+.landing-steps {
+  text-align: center;
+  margin-bottom: var(--space-16);
+  animation: slideUp 0.6s ease 0.3s both;
+}
+
+.landing-steps h2 {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  margin-bottom: var(--space-8);
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-8);
+}
+
+.step {
+  text-align: center;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-4);
+}
+
+.step h4 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.step p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* ─── Footer ─── */
+.landing-footer {
+  margin-top: auto;
+  padding: var(--space-8) 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD PAGE
+   ═══════════════════════════════════════════════════════════════ */
+
+.dashboard-page {
+  min-height: 100vh;
+}
+
 .dashboard {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: var(--space-8);
+  animation: fadeIn var(--transition-base);
+}
+
+.dashboard-header {
+  margin-bottom: var(--space-6);
 }
 
 .dashboard-header h1 {
@@ -269,6 +611,220 @@ code, pre {
   color: var(--color-text-secondary);
 }
 
+/* ─── Dashboard Error ─── */
+.dashboard-error {
+  background: rgba(255, 71, 87, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-6);
+  animation: fadeIn var(--transition-fast);
+}
+
+/* ─── Dashboard Loading ─── */
+.dashboard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-16);
+  color: var(--color-text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REPO UPLOADER
+   ═══════════════════════════════════════════════════════════════ */
+
+.repo-uploader {
+  margin-bottom: var(--space-8);
+  border: 1px dashed var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.repo-uploader:hover {
+  border-color: var(--color-accent);
+}
+
+.repo-uploader-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.repo-uploader-header h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.repo-count {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.repo-uploader-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.repo-uploader-input-group {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.repo-uploader-input {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  transition: border-color var(--transition-fast);
+  outline: none;
+}
+
+.repo-uploader-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-subtle);
+}
+
+.repo-uploader-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.repo-uploader-input:disabled {
+  opacity: 0.5;
+}
+
+.repo-uploader-error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REPO GRID
+   ═══════════════════════════════════════════════════════════════ */
+
+.repo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-6);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REPO CARD
+   ═══════════════════════════════════════════════════════════════ */
+
+.repo-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  animation: fadeIn var(--transition-base);
+}
+
+.repo-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.repo-card-name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.repo-card-url {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.repo-card-url:hover {
+  color: var(--color-text-link);
+}
+
+.repo-card-stats {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.repo-card-stat {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.repo-card-languages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.repo-card-lang-tag {
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+.repo-card-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPTY STATE
+   ═══════════════════════════════════════════════════════════════ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-16) var(--space-8);
+  animation: fadeIn var(--transition-base);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-4);
+  opacity: 0.6;
+}
+
+.empty-state h3 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+  color: var(--color-text-secondary);
+}
+
+.empty-state p {
+  color: var(--color-text-muted);
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+.empty-state code {
+  background: var(--color-bg-tertiary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-link);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PLACEHOLDER (for Phase 9+ stubs)
+   ═══════════════════════════════════════════════════════════════ */
+
 .placeholder {
   color: var(--color-text-muted);
   font-style: italic;
@@ -276,7 +832,10 @@ code, pre {
   text-align: center;
 }
 
-/* ─── Scrollbar ─── */
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════════ */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -293,4 +852,31 @@ code, pre {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-hover);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .landing-features {
+    grid-template-columns: 1fr;
+  }
+
+  .steps-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  .repo-uploader-input-group {
+    flex-direction: column;
+  }
+
+  .repo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-header h1 {
+    font-size: var(--text-3xl);
+  }
 }
