@@ -330,7 +330,7 @@ class QueryConfigSchema(BaseModel):
     top_k_retrieval: int = Field(default=20, ge=1, le=100)
     top_k_rerank: int = Field(default=5, ge=1, le=20)
     include_references: bool = True
-    model: str = Field(default="gpt-4o-mini")
+    model: str = Field(default="gemini-3.6-flash")
     temperature: float = Field(default=0.1, ge=0.0, le=2.0)
 
 
