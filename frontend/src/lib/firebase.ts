@@ -16,25 +16,55 @@ import { getAuth, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+
+const isDev = !apiKey || !projectId || projectId === "your-project-id" || apiKey === "your-api-key";
+
+const dummyConfig = {
+  apiKey: "AIzaSyDummyKeyForDevModeOnly12345",
+  authDomain: "dev.firebaseapp.com",
+  projectId: "dev-project",
+  storageBucket: "dev.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:123456789",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const firebaseConfig = isDev
+  ? dummyConfig
+  : {
+      apiKey,
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId,
+      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    };
 
-// ─── Export Firebase services ───
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+// Initialize Firebase safely
+let app: any;
+let auth: any;
+let db: any;
+let storage: any;
+
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+} catch (e) {
+  console.warn("[Firebase] Dev mode stub initialized:", e);
+  app = null;
+  auth = { currentUser: null };
+  db = null;
+  storage = null;
+}
+
+export { auth, db, storage };
 
 // ─── Auth Providers ───
 export const googleProvider = new GoogleAuthProvider();
 export const githubProvider = new GithubAuthProvider();
 
 export default app;
+
