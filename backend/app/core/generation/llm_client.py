@@ -23,6 +23,7 @@ Reference:
 import logging
 import os
 import time
+from typing import Generator
 
 logger = logging.getLogger(__name__)
 
@@ -71,28 +72,33 @@ class LLMClient:
         self.fallback_provider = fallback_provider
 
         # ─── Resolve API keys ───
+        from app.config import settings
+
         if provider == "gemini":
-            self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
-            self.model = model or os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+            self.api_key = api_key or os.environ.get("GEMINI_API_KEY") or settings.GEMINI_API_KEY
+            self.model = model or os.environ.get("GEMINI_MODEL") or settings.GEMINI_MODEL
             if not self.api_key:
                 raise LLMError(
                     "GEMINI_API_KEY not set. Get one at: https://aistudio.google.com/apikey"
                 )
         elif provider == "groq":
-            self.api_key = api_key or os.environ.get("GROQ_API_KEY")
-            self.model = model or os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant")
+            self.api_key = api_key or os.environ.get("GROQ_API_KEY") or settings.GROQ_API_KEY
+            self.model = model or os.environ.get("GROQ_MODEL") or settings.GROQ_MODEL
             if not self.api_key:
                 raise LLMError(
                     "GROQ_API_KEY not set. Get one at: https://console.groq.com/keys"
                 )
+        else:
+            self.api_key = api_key
+            self.model = model
 
         # ─── Resolve fallback ───
         if fallback_provider == "groq":
-            self.fallback_api_key = fallback_api_key or os.environ.get("GROQ_API_KEY")
-            self.fallback_model = os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant")
+            self.fallback_api_key = fallback_api_key or os.environ.get("GROQ_API_KEY") or settings.GROQ_API_KEY
+            self.fallback_model = os.environ.get("GROQ_MODEL") or settings.GROQ_MODEL
         elif fallback_provider == "gemini":
-            self.fallback_api_key = fallback_api_key or os.environ.get("GEMINI_API_KEY")
-            self.fallback_model = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+            self.fallback_api_key = fallback_api_key or os.environ.get("GEMINI_API_KEY") or settings.GEMINI_API_KEY
+            self.fallback_model = os.environ.get("GEMINI_MODEL") or settings.GEMINI_MODEL
         else:
             self.fallback_api_key = None
             self.fallback_model = None
@@ -158,6 +164,83 @@ class LLMClient:
 
             raise primary_error
 
+    def generate_stream(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.1,
+        max_tokens: int = 2000,
+    ) -> Generator[str, None, None]:
+        """
+        Generate a streaming response from the LLM.
+
+        Tries the primary provider first. On failure, logs a warning and tries
+        the fallback provider. If fallback fails, falls back to non-streaming generate().
+        """
+        # ─── Try primary provider ───
+        try:
+            yield from self._generate_stream_with_provider(
+                provider=self.provider,
+                model=self.model,
+                api_key=self.api_key,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            return
+        except Exception as primary_error:
+            logger.warning(f"Primary stream ({self.provider}) failed: {primary_error}")
+
+        # ─── Try fallback provider ───
+        if self.fallback_provider and self.fallback_api_key:
+            logger.info(f"Falling back stream to {self.fallback_provider}...")
+            try:
+                yield from self._generate_stream_with_provider(
+                    provider=self.fallback_provider,
+                    model=self.fallback_model,
+                    api_key=self.fallback_api_key,
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                return
+            except Exception as fallback_error:
+                logger.warning(f"Fallback stream ({self.fallback_provider}) failed: {fallback_error}")
+
+        # ─── Fallback to non-streaming generate() ───
+        logger.info("Both streaming providers failed. Falling back to non-streaming generate().")
+        yield self.generate(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+    def _generate_stream_with_provider(
+        self,
+        provider: str,
+        model: str,
+        api_key: str,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float,
+        max_tokens: int,
+    ) -> Generator[str, None, None]:
+        if not api_key:
+            raise LLMError(f"{provider.upper()}_API_KEY not set. Get one at: https://aistudio.google.com/apikey")
+        if provider == "gemini":
+            yield from self._gemini_generate_stream(
+                model, api_key, system_prompt, user_prompt, temperature, max_tokens
+            )
+        elif provider == "groq":
+            yield from self._groq_generate_stream(
+                model, api_key, system_prompt, user_prompt, temperature, max_tokens
+            )
+        else:
+            raise LLMError(f"Unsupported stream provider: {provider}")
+
     def _generate_with_retry(
         self,
         provider: str,
@@ -169,6 +252,8 @@ class LLMClient:
         max_tokens: int,
         max_retries: int = 3,
     ) -> str:
+        if not api_key:
+            raise LLMError(f"{provider.upper()}_API_KEY not set. Get one at: https://aistudio.google.com/apikey")
         """
         Call LLM API with exponential backoff retry.
 
@@ -272,6 +357,38 @@ class LLMClient:
 
         raise LLMError("Gemini returned empty response")
 
+    def _gemini_generate_stream(
+        self,
+        model: str,
+        api_key: str,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float,
+        max_tokens: int,
+    ) -> Generator[str, None, None]:
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
+
+        response = client.models.generate_content_stream(
+            model=model,
+            contents=user_prompt,
+            config=genai.types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            ),
+        )
+
+        for chunk in response:
+            if chunk.candidates and chunk.candidates[0].content.parts:
+                parts = chunk.candidates[0].content.parts
+                for p in parts:
+                    if not (hasattr(p, "thought") and p.thought) and hasattr(p, "text") and p.text:
+                        yield p.text
+            elif chunk.text:
+                yield chunk.text
+
     def _groq_generate(
         self,
         model: str,
@@ -309,3 +426,34 @@ class LLMClient:
             return content
 
         raise LLMError("Groq returned empty response")
+
+    def _groq_generate_stream(
+        self,
+        model: str,
+        api_key: str,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float,
+        max_tokens: int,
+    ) -> Generator[str, None, None]:
+        from openai import OpenAI
+
+        client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.groq.com/openai/v1",
+        )
+
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+        )
+
+        for chunk in response:
+            if chunk.choices and chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
