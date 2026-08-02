@@ -16,8 +16,8 @@ import type { ApiResponse, StreamEvent } from "../types";
  * Returns empty string if not authenticated.
  */
 async function getAuthToken(): Promise<string> {
-  const user = auth.currentUser;
-  if (!user) return "";
+  const user = auth?.currentUser;
+  if (!user || typeof user.getIdToken !== "function") return "";
   return user.getIdToken();
 }
 
