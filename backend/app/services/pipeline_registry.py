@@ -92,9 +92,6 @@ class PipelineRegistry:
         if not self._initialized:
             raise RuntimeError("PipelineRegistry not initialized. Call initialize() first.")
 
-        if self._llm_client is None:
-            raise RuntimeError("LLM client not available. Check API keys.")
-
         pipeline = Pipeline(
             embedder=self._embedder,
             llm_client=self._llm_client,
