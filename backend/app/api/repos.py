@@ -14,8 +14,9 @@ Reference: API Documentation → Section 6 (Repos)
 """
 
 import logging
+import os
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 
 from app.config import settings
 from app.exceptions import (
@@ -94,10 +95,11 @@ async def clone_repo(
     from app.core.ingestion.repo_loader import RepoLoader, RepoCloneError
 
     loader = RepoLoader()
+    target_dir = os.path.join(settings.TEMP_DIR, repo_id)
     repo_dir = None
 
     try:
-        repo_dir = loader.clone(github_url)
+        repo_dir = loader.clone(github_url, target_dir=target_dir)
     except RepoCloneError as e:
         fb.update_repo_status(repo_id, "error", {"error_detail": str(e)})
         raise RepoCloneFailedError(str(e))
@@ -109,6 +111,7 @@ async def clone_repo(
 
         # ─── Check file count limit ───
         if ingest_result.file_count > settings.MAX_FILES_PER_REPO:
+            loader.cleanup(repo_dir)
             registry.delete(repo_id)
             fb.update_repo_status(repo_id, "error")
             raise RepoTooLargeError(
@@ -128,14 +131,15 @@ async def clone_repo(
         )
 
     except (RepoTooLargeError, IndexFailedError):
+        if repo_dir:
+            loader.cleanup(repo_dir)
         raise
     except Exception as e:
+        if repo_dir:
+            loader.cleanup(repo_dir)
         fb.update_repo_status(repo_id, "error", {"error_detail": str(e)})
         registry.delete(repo_id)
         raise IndexFailedError(str(e))
-    finally:
-        if repo_dir:
-            loader.cleanup(repo_dir)
 
     # ─── Return repo data ───
     repo = fb.get_repo(repo_id, user_id)
@@ -177,6 +181,85 @@ async def get_repo(
         raise RepoNotFoundError(repo_id)
 
     return {"success": True, "data": repo}
+
+# ═══════════════════════════════════════════════════════════════
+# GET /api/repos/{repo_id}/files
+# ═══════════════════════════════════════════════════════════════
+
+@router.get("/{repo_id}/files")
+async def get_repo_files(
+    repo_id: str,
+    request: Request,
+    path: str = Query(default="/", description="Directory path relative to repo root"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """Get file tree for a repository path."""
+    fb = _get_firebase_service()
+    
+    # ─── Verify repo exists and belongs to user ───
+    repo = fb.get_repo(repo_id, user_id)
+    if repo is None:
+        raise RepoNotFoundError(repo_id)
+
+    # ─── Check repo is ready ───
+    if repo.get("status") != "ready":
+        raise IndexNotReadyError(repo_id, repo.get("status", "unknown"))
+        
+    # ─── Security: sanitize path ───
+    if ".." in path:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    repo_dir = os.path.join(settings.TEMP_DIR, repo_id)
+    target_path = os.path.normpath(os.path.join(repo_dir, path.lstrip("/")))
+    
+    if not target_path.startswith(os.path.realpath(repo_dir)) and not target_path.startswith(repo_dir):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Invalid path traversal")
+        
+    children = []
+    
+    lang_map = {
+        '.py': 'python', '.js': 'javascript', '.ts': 'typescript', '.tsx': 'typescript',
+        '.jsx': 'javascript', '.md': 'markdown', '.json': 'json', '.yaml': 'yaml',
+        '.yml': 'yaml', '.html': 'html', '.css': 'css', '.txt': 'text'
+    }
+    
+    if os.path.exists(target_path) and os.path.isdir(target_path):
+        for name in os.listdir(target_path):
+            if name == ".git" or name == "__pycache__" or name == ".DS_Store":
+                continue
+            full_path = os.path.join(target_path, name)
+            if os.path.isdir(full_path):
+                try:
+                    count = len([f for f in os.listdir(full_path) if f != ".git" and f != "__pycache__"])
+                except Exception:
+                    count = 0
+                children.append({
+                    "name": name,
+                    "type": "directory",
+                    "children_count": count
+                })
+            else:
+                ext = os.path.splitext(name)[1].lower()
+                lang = lang_map.get(ext, "unknown")
+                size = 0
+                try:
+                    size = os.path.getsize(full_path)
+                except Exception:
+                    pass
+                children.append({
+                    "name": name,
+                    "type": "file",
+                    "size_bytes": size,
+                    "language": lang
+                })
+                
+    # Sort: directories first, then files, both alphabetically
+    directories = sorted([c for c in children if c["type"] == "directory"], key=lambda x: x["name"].lower())
+    files = sorted([c for c in children if c["type"] == "file"], key=lambda x: x["name"].lower())
+    
+    return {"success": True, "data": {"path": path, "children": directories + files}}
 
 
 # ═══════════════════════════════════════════════════════════════
