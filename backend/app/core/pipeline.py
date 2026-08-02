@@ -23,6 +23,7 @@ Reference:
 
 import logging
 import time
+from typing import Generator
 
 from app.core.ingestion.file_scanner import FileScanner
 from app.core.ingestion.file_reader import FileReader
@@ -37,7 +38,7 @@ from app.core.indexing.vector_store import VectorStore
 from app.core.indexing.bm25_index import BM25Index
 from app.core.retrieval.retriever import Retriever
 from app.core.retrieval.context_builder import ContextBuilder
-from app.core.generation.llm_client import LLMClient
+from app.core.generation.llm_client import LLMClient, LLMError
 from app.core.generation.prompt_builder import PromptBuilder
 from app.core.generation.response_parser import ResponseParser
 from app.models.schemas import (
@@ -275,6 +276,9 @@ class Pipeline:
         # ═══════════════════════════════════════════════════
         # Stage 12: Generate
         # ═══════════════════════════════════════════════════
+        if self.llm_client is None:
+            raise LLMError("GEMINI_API_KEY not set. Get one at: https://aistudio.google.com/apikey")
+
         start = time.time()
         raw_answer = self.llm_client.generate(
             system_prompt=prompt["system"],
@@ -304,6 +308,100 @@ class Pipeline:
                 "temperature": config.temperature,
             },
         )
+
+    def query_stream(
+        self,
+        query: str,
+        config: QueryConfig | None = None,
+    ) -> Generator[dict, None, None]:
+        """
+        Full query streaming pipeline: retrieve → context → prompt → stream generate → parse.
+        """
+        if self.retriever is None:
+            raise RuntimeError(
+                "Pipeline not ready. Call ingest() first to build indexes."
+            )
+
+        config = config or QueryConfig()
+        timings = {}
+
+        # ═══════════════════════════════════════════════════
+        # Stage 8: Retrieve
+        # ═══════════════════════════════════════════════════
+        start = time.time()
+        results = self.retriever.retrieve(
+            query,
+            strategy=config.strategy,
+            top_k=config.top_k_retrieval,
+        )
+        timings["retrieval_ms"] = (time.time() - start) * 1000
+
+        # Take top-5 for context
+        top_results = results[:config.top_k_rerank]
+
+        # ═══════════════════════════════════════════════════
+        # Stage 10: Build context
+        # ═══════════════════════════════════════════════════
+        start = time.time()
+        context = self.context_builder.build(top_results, max_context_tokens=4000)
+        timings["context_ms"] = (time.time() - start) * 1000
+
+        # ═══════════════════════════════════════════════════
+        # Stage 11: Build prompt
+        # ═══════════════════════════════════════════════════
+        prompt = self.prompt_builder.build(
+            context=context,
+            query=query,
+            repo_name=self.repo_name,
+        )
+
+        # ═══════════════════════════════════════════════════
+        # Stage 12: Stream Generate
+        # ═══════════════════════════════════════════════════
+        if self.llm_client is None:
+            raise LLMError("GEMINI_API_KEY not set. Get one at: https://aistudio.google.com/apikey")
+
+        start = time.time()
+        accumulated_text = []
+        for token in self.llm_client.generate_stream(
+            system_prompt=prompt["system"],
+            user_prompt=prompt["user"],
+            temperature=config.temperature,
+        ):
+            accumulated_text.append(token)
+            yield {"token": token, "done": False}
+        timings["generation_ms"] = (time.time() - start) * 1000
+
+        raw_answer = "".join(accumulated_text)
+
+        # ═══════════════════════════════════════════════════
+        # Stage 13: Parse response
+        # ═══════════════════════════════════════════════════
+        parsed = self.response_parser.parse(
+            response=raw_answer,
+            context_chunks=top_results,
+            repo_files=self.repo_files,
+        )
+
+        citations = [
+            {
+                "index": c.index,
+                "file_path": c.file_path,
+                "lines": c.lines,
+                "score": round(c.score, 3),
+                "valid": c.valid,
+            }
+            for c in parsed.citations
+        ]
+
+        yield {
+            "token": "",
+            "done": True,
+            "sources": citations,
+            "timings": {
+                k: round(v, 1) for k, v in timings.items()
+            },
+        }
 
     def _parse_and_chunk(self, content: str, file_info) -> list[Chunk]:
         """
